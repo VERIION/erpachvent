@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Nexus ERP - Management Achat & Vente</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0B0F19',
+                        paneldark: 'rgba(17, 24, 39, 0.75)',
+                        panellight: 'rgba(255, 255, 255, 0.85)',
+                        accent: {
+                            cyan: '#06b6d4',
+                            purple: '#8b5cf6',
+                            emerald: '#10b981',
+                            rose: '#f43f5e',
+                            amber: '#f59e0b',
+                            blue: '#3b82f6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js & XLSX CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Glassmorphism Dynamic Styles */
+        .glass-panel {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .dark .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        html:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+        }
+
+        .glass-panel-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dark .glass-panel-hover:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+            box-shadow: 0 12px 35px rgba(6, 182, 212, 0.15);
+            transform: translateY(-2px);
+        }
+        html:not(.dark) .glass-panel-hover:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 12px 30px rgba(6, 182, 212, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .glass-input {
+            transition: all 0.2s ease;
+        }
+        .dark .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #F9FAFB;
+        }
+        html:not(.dark) .glass-input {
+            background: #FFFFFF;
+            border: 1px solid #CBD5E1;
+            color: #0F172A;
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: #06b6d4;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+        }
+
+        /* Ambient Glowing Background Orbs */
+        .glow-orb-1 {
+            position: fixed;
+            top: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .glow-orb-2 {
+            position: fixed;
+            bottom: -15%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.6);
+        }
+
+        /* Role-based display restrictions */
+        body[data-role="equipe"] .dir-only,
+        body[data-role="equipe"] button[onclick*="delete"] {
+            display: none !important;
+        }
+
+        /* Printable stylesheet adjustments */
+        @media print {
+            body { background: #FFFFFF !important; color: #000000 !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; width: 100% !important; background: #FFF !important; color: #000 !important; }
+            .glass-panel { border: 1px solid #E2E8F0 !important; box-shadow: none !important; background: #FFF !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 dark:bg-[#0B0F19] text-slate-800 dark:text-gray-100 min-h-screen flex flex-col md:flex-row relative antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- Glowing Background Elements -->
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+
+    <!-- Notification Toast System -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2.5 pointer-events-none"></div>
+
+    <!-- DESKTOP SIDEBAR NAVIGATION -->
+    <aside id="sidebar" class="hidden md:flex w-64 glass-panel border-r border-gray-200/80 dark:border-gray-800/80 flex-col justify-between z-30 flex-shrink-0 sticky top-0 h-screen overflow-y-auto">
+        <div>
+            <!-- Branding Logo Header -->
+            <div class="p-5 flex items-center justify-between border-b border-gray-200/80 dark:border-gray-800/60">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white">
+                        <span id="brand-icon"><i data-lucide="layers" class="w-5 h-5"></i></span>
+                        <img id="brand-img" class="hidden w-full h-full object-cover rounded-2xl" alt="logo">
+                    </div>
+                    <div>
+                        <h1 id="brand-name" class="font-extrabold text-base tracking-wide text-slate-900 dark:text-white">NEXUS ERP</h1>
+                        <p id="brand-sub" class="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 tracking-wider">Achat & Vente Pro</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="p-3.5 space-y-1.5">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/20">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Tableau de bord</span>
+                </button>
+
+                <button onclick="switchTab('products')" id="nav-products" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5">
+                    <i data-lucide="boxes" class="w-4 h-4"></i>
+                    <span>Produits & Stocks</span>
+                </button>
+
+                <button onclick="switchTab('documents')" id="nav-documents" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5">
+                    <i data-lucide="receipt" class="w-4 h-4"></i>
+                    <span>Achats & Ventes</span>
+                </button>
+
+                <button onclick="switchTab('contacts')" id="nav-contacts" class="nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5">
+                    <i data-lucide="users-2" class="w-4 h-4"></i>
+                    <span>Clients & Tiers</span>
+                </button>
+
+                <button onclick="switchTab('finances')" id="nav-finances" class="dir-only nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all text-gray-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5">
+                    <i data-lucide="wallet-cards" class="w-4 h-4"></i>
+                    <span>Trésorerie & Caisse</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Data Import / Export Sidebar Footer -->
+        <div class="dir-only p-4 border-t border-gray-200/80 dark:border-gray-800/60 space-y-2">
+            <div class="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 px-1 py-1 font-medium">
+                <span class="flex items-center gap-1.5"><i data-lucide="database" class="w-3.5 h-3.5 text-cyan-500"></i> Local Storage</span>
+                <span class="flex items-center gap-1 text-emerald-500 font-bold"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sync</span>
+            </div>
+            <button onclick="exportData()" class="w-full text-xs flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition font-medium">
+                <i data-lucide="download-cloud" class="w-3.5 h-3.5 text-cyan-500"></i> Export JSON
+            </button>
+            <label class="w-full text-xs flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition font-medium cursor-pointer">
+                <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-purple-500"></i> Import JSON
+                <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+            </label>
+        </div>
+    </aside>
+
+    <!-- MOBILE BOTTOM NAVIGATION DOCK -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 p-2.5 no-print">
+        <nav class="glass-panel rounded-2xl p-1.5 border border-gray-200 dark:border-gray-800 flex justify-around items-center shadow-2xl">
+            <button onclick="switchTab('dashboard')" id="mob-nav-dashboard" class="mob-nav-btn flex flex-col items-center gap-1 p-2 rounded-xl text-cyan-500 font-bold">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px]">Accueil</span>
+            </button>
+
+            <button onclick="switchTab('products')" id="mob-nav-products" class="mob-nav-btn flex flex-col items-center gap-1 p-2 rounded-xl text-gray-400 font-medium">
+                <i data-lucide="boxes" class="w-5 h-5"></i>
+                <span class="text-[10px]">Stock</span>
+            </button>
+
+            <button onclick="openModal('modal-doc')" class="flex flex-col items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 -mt-5 transition transform active:scale-95">
+                <i data-lucide="plus" class="w-6 h-6"></i>
+            </button>
+
+            <button onclick="switchTab('documents')" id="mob-nav-documents" class="mob-nav-btn flex flex-col items-center gap-1 p-2 rounded-xl text-gray-400 font-medium">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
+                <span class="text-[10px]">Ventes</span>
+            </button>
+
+            <button onclick="switchTab('contacts')" id="mob-nav-contacts" class="mob-nav-btn flex flex-col items-center gap-1 p-2 rounded-xl text-gray-400 font-medium">
+                <i data-lucide="users-2" class="w-5 h-5"></i>
+                <span class="text-[10px]">Tiers</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MAIN DYNAMIC CONTENT CONTAINER -->
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto relative z-10 space-y-6 pb-24 md:pb-8">
+
+        <!-- Top Bar Header -->
+        <header class="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print border border-gray-200/80 dark:border-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="md:hidden w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center text-white">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h2 id="page-title" class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">Tableau de bord</h2>
+                    <p id="page-subtitle" class="text-xs text-gray-500 dark:text-gray-400">Vue d'ensemble des activités et performances.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Theme Toggle Button -->
+                <button id="theme-btn" onclick="toggleTheme()" title="Basculer Mode Clair/Sombre" class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 hover:text-cyan-500 transition">
+                    <i data-lucide="sun" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Currency Selection -->
+                <div class="relative">
+                    <select id="cur-select" onchange="setCurrency(this.value)" class="glass-input text-xs font-bold px-3 py-2.5 rounded-xl appearance-none pr-8">
+                    </select>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 absolute right-2.5 top-3 text-gray-400 pointer-events-none"></i>
+                </div>
+
+                <!-- Enterprise Settings Modal Trigger -->
+                <button onclick="openSettings()" title="Configuration ERP" class="dir-only p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 hover:text-cyan-500 transition">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                </button>
+
+                <!-- User Profile & Access Badge -->
+                <span id="user-badge" class="text-xs font-semibold px-3 py-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1.5">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span>Role</span>
+                </span>
+
+                <!-- Logout Trigger -->
+                <button onclick="logout()" title="Déconnexion" class="p-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Action Button for Document Creation -->
+                <button onclick="openModal('modal-doc')" class="hidden sm:flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-cyan-500/20 transition">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Nouveau Document
+                </button>
+            </div>
+        </header>
+
+        <!-- SECTION 1: DASHBOARD VIEW -->
+        <section id="section-dashboard" class="tab-content space-y-6">
+            <!-- Key Metric Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Sales KPI -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden border-l-4 border-l-emerald-500">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">Chiffre d'Affaires</span>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20">
+                            <i data-lucide="trending-up" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h3 id="stat-sales" class="text-2xl font-extrabold text-slate-900 dark:text-white">0,00 €</h3>
+                        <p class="text-xs text-emerald-500 dark:text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Factures de ventes validées
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Purchases KPI -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden border-l-4 border-l-purple-500">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">Achats Totaux</span>
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center border border-purple-500/20">
+                            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h3 id="stat-purchases" class="text-2xl font-extrabold text-slate-900 dark:text-white">0,00 €</h3>
+                        <p class="text-xs text-purple-500 dark:text-purple-400 mt-1 flex items-center gap-1 font-medium">
+                            <i data-lucide="arrow-down-left" class="w-3.5 h-3.5"></i> Approvisionnements stock
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Estimated Margin KPI -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden border-l-4 border-l-cyan-500">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">Marge Brute Estimée</span>
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center border border-cyan-500/20">
+                            <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h3 id="stat-profit" class="text-2xl font-extrabold text-slate-900 dark:text-white">0,00 €</h3>
+                        <p id="stat-profit-ratio" class="text-xs text-cyan-600 dark:text-cyan-400 mt-1 flex items-center gap-1 font-medium">
+                            <i data-lucide="percent" class="w-3.5 h-3.5"></i> 0% de marge brute
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Low Stock Alert Count KPI -->
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden border-l-4 border-l-amber-500">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400">Alertes Stock</span>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h3 id="stat-low-stock" class="text-2xl font-extrabold text-slate-900 dark:text-white">0</h3>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1 font-medium">
+                            <i data-lucide="package-x" class="w-3.5 h-3.5"></i> Seuil min. atteint
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Performance Trend & Replenishment Alert -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Trend Chart -->
+                <div class="glass-panel p-5 rounded-2xl lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-4 h-4 text-cyan-500"></i> Performance Financière
+                        </h3>
+                        <span class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Achat vs Vente</span>
+                    </div>
+                    <div class="h-60">
+                        <canvas id="chart-sales-trend"></canvas>
+                    </div>
+                </div>
+
+                <!-- Urgent Stock Panel -->
+                <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between space-y-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                            <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i> Articles sous le seuil
+                        </h3>
+                        <div id="dashboard-low-stock-list" class="space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                        </div>
+                    </div>
+                    <button onclick="switchTab('products')" class="w-full py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold text-slate-800 dark:text-gray-200 rounded-xl transition flex items-center justify-center gap-2">
+                        <span>Gérer l'inventaire</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Documents Table -->
+            <div class="glass-panel p-5 rounded-2xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-cyan-500"></i> Derniers Documents Émis
+                    </h3>
+                    <button onclick="switchTab('documents')" class="text-xs text-cyan-500 font-semibold hover:underline flex items-center gap-1">
+                        <span>Voir tout</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="uppercase bg-gray-100 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                            <tr>
+                                <th class="p-3">Réf</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Contact</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3">Total TTC</th>
+                                <th class="p-3">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-recent-docs" class="divide-y divide-gray-200 dark:divide-gray-800/50">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: PRODUCTS & INVENTORY -->
+        <section id="section-products" class="tab-content hidden space-y-5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="relative w-full sm:w-72">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" id="search-products" onkeyup="filterProducts()" placeholder="Rechercher désignation ou SKU..." class="glass-input pl-9 pr-4 py-2 rounded-xl text-xs w-full">
+                </div>
+
+                <button onclick="openProductModal()" class="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition">
+                    <i data-lucide="package-plus" class="w-4 h-4"></i>
+                    <span>Ajouter Produit</span>
+                </button>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="uppercase bg-gray-100 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                            <tr>
+                                <th class="p-3.5">SKU / Code</th>
+                                <th class="p-3.5">Désignation</th>
+                                <th class="p-3.5">Prix Achat HT</th>
+                                <th class="p-3.5">Prix Vente HT</th>
+                                <th class="p-3.5">Stock</th>
+                                <th class="p-3.5">Jauge Stock</th>
+                                <th class="p-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-products" class="divide-y divide-gray-200 dark:divide-gray-800/60">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: COMMERCIAL DOCUMENTS -->
+        <section id="section-documents" class="tab-content hidden space-y-5">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-64">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="search-docs" onkeyup="filterDocs()" placeholder="Rechercher document..." class="glass-input pl-9 pr-4 py-2 rounded-xl text-xs w-full">
+                    </div>
+                    <select id="filter-doc-type" onchange="filterDocs()" class="glass-input px-3 py-2 rounded-xl text-xs">
+                        <option value="ALL">Tous les types</option>
+                        <option value="FACTURE_VENTE">Factures de Vente</option>
+                        <option value="DEVIS">Devis Clients</option>
+                        <option value="BON_ACHAT">Bons d'Achat</option>
+                    </select>
+                </div>
+
+                <button onclick="openModal('modal-doc')" class="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-lg shadow-cyan-500/20 transition">
+                    <i data-lucide="file-plus-2" class="w-4 h-4"></i>
+                    <span>Créer Document</span>
+                </button>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="uppercase bg-gray-100 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                            <tr>
+                                <th class="p-3.5">Numéro</th>
+                                <th class="p-3.5">Type</th>
+                                <th class="p-3.5">Tiers / Contact</th>
+                                <th class="p-3.5">Date</th>
+                                <th class="p-3.5">Total HT</th>
+                                <th class="p-3.5">Total TTC</th>
+                                <th class="p-3.5">Statut</th>
+                                <th class="p-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-documents" class="divide-y divide-gray-200 dark:divide-gray-800/60">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: CONTACTS & DIRECTORY -->
+        <section id="section-contacts" class="tab-content hidden space-y-5">
+            <div class="flex justify-between items-center gap-3">
+                <div class="relative w-full sm:w-64">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" id="search-contacts" onkeyup="filterContacts()" placeholder="Rechercher un contact..." class="glass-input pl-9 pr-4 py-2 rounded-xl text-xs w-full">
+                </div>
+                <button onclick="openContactModal()" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-lg shadow-purple-500/20 transition">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <span>Nouveau Contact</span>
+                </button>
+            </div>
+
+            <!-- Directory Filtering Bar -->
+            <div class="glass-panel p-4 rounded-2xl flex flex-wrap items-end gap-3 text-xs">
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan-500"></i> Mois
+                    </label>
+                    <select id="flt-month" onchange="filterContacts()" class="glass-input px-3 py-2 rounded-xl text-xs"></select>
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="calendar-days" class="w-3.5 h-3.5 text-purple-500"></i> Année
+                    </label>
+                    <select id="flt-year" onchange="filterContacts()" class="glass-input px-3 py-2 rounded-xl text-xs"></select>
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Ajouter une année</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="flt-newyear" min="2000" max="2100" placeholder="2027" class="glass-input w-20 px-3 py-2 rounded-xl text-xs">
+                        <button onclick="addYear()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Année
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-500"></i> Type
+                    </label>
+                    <select id="flt-type" onchange="filterContacts()" class="glass-input px-3 py-2 rounded-xl text-xs">
+                        <option value="">Tous les types</option>
+                        <option value="CLIENT">Clients</option>
+                        <option value="FOURNISSEUR">Fournisseurs</option>
+                    </select>
+                </div>
+                <button onclick="exportContactsXlsx()" class="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-gray-950 transition">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export Excel
+                </button>
+                <span id="contact-count" class="text-gray-400 w-full text-[11px] font-medium pt-1"></span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="grid-contacts">
+            </div>
+        </section>
+
+        <!-- SECTION 5: FINANCES & CASH LOGIC -->
+        <section id="section-finances" class="tab-content hidden space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-emerald-500">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs uppercase font-bold text-gray-500 dark:text-gray-400">Encaissements Totaux</span>
+                        <i data-lucide="arrow-down-right" class="w-5 h-5 text-emerald-500"></i>
+                    </div>
+                    <h3 id="finance-in" class="text-2xl font-extrabold text-emerald-500 mt-2">0,00 €</h3>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-rose-500">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs uppercase font-bold text-gray-500 dark:text-gray-400">Décaissements Totaux</span>
+                        <i data-lucide="arrow-up-right" class="w-5 h-5 text-rose-500"></i>
+                    </div>
+                    <h3 id="finance-out" class="text-2xl font-extrabold text-rose-500 mt-2">0,00 €</h3>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-cyan-500">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs uppercase font-bold text-gray-500 dark:text-gray-400">Solde Trésorerie</span>
+                        <i data-lucide="wallet" class="w-5 h-5 text-cyan-500"></i>
+                    </div>
+                    <h3 id="finance-balance" class="text-2xl font-extrabold text-cyan-500 mt-2">0,00 €</h3>
+                </div>
+            </div>
+
+            <!-- New Payment Entry -->
+            <div class="glass-panel p-5 rounded-2xl space-y-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-4 h-4 text-emerald-500"></i> Enregistrer un Règlement / Paiement
+                </h3>
+                <form id="form-payment" onsubmit="handlePaymentSubmit(event)" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 text-xs font-semibold">Document Lié</label>
+                        <select id="pay-doc-id" required class="glass-input w-full p-2.5 rounded-xl text-xs"></select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 text-xs font-semibold">Montant (<span class="cur-code">€</span>)</label>
+                        <input type="number" step="0.01" id="pay-amount" required class="glass-input w-full p-2.5 rounded-xl text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 text-xs font-semibold">Mode de Règlement</label>
+                        <select id="pay-method" class="glass-input w-full p-2.5 rounded-xl text-xs">
+                            <option value="Espèces">Espèces</option>
+                            <option value="Virement Bancaire">Virement Bancaire</option>
+                            <option value="Carte Bancaire">Carte Bancaire</option>
+                            <option value="Mobile Money">Mobile Money</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 text-xs font-semibold">Date</label>
+                        <input type="date" id="pay-date" required class="glass-input w-full p-2.5 rounded-xl text-xs">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold p-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i> Valider Règlement
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Ledger Table -->
+            <div class="glass-panel rounded-2xl overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                    <h3 class="font-bold text-xs uppercase text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="list-checks" class="w-4 h-4 text-purple-500"></i> Historique des Transactions
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="uppercase bg-gray-100 dark:bg-gray-900/80 text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                            <tr>
+                                <th class="p-3.5">Date</th>
+                                <th class="p-3.5">Doc Réf</th>
+                                <th class="p-3.5">Mode</th>
+                                <th class="p-3.5">Sens</th>
+                                <th class="p-3.5 text-right">Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-payments" class="divide-y divide-gray-200 dark:divide-gray-800/60">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL 1: PRODUCT FORM -->
+    <div id="modal-product" class="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-3xl space-y-4 border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-800 pb-3">
+                <h3 id="modal-product-title" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="package-plus" class="w-5 h-5 text-cyan-500"></i> Ajouter Produit
+                </h3>
+                <button onclick="closeModal('modal-product')" class="text-gray-400 hover:text-slate-900 dark:hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-product" onsubmit="saveProduct(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="barcode" class="w-3.5 h-3.5 text-gray-400"></i> Code / SKU
+                    </label>
+                    <input type="text" id="prod-sku" required class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="tag" class="w-3.5 h-3.5 text-gray-400"></i> Désignation Produit
+                    </label>
+                    <input type="text" id="prod-name" required class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Prix Achat HT (<span class="cur-code">€</span>)</label>
+                        <input type="number" step="0.01" id="prod-buy" required class="glass-input w-full p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Prix Vente HT (<span class="cur-code">€</span>)</label>
+                        <input type="number" step="0.01" id="prod-sell" required class="glass-input w-full p-2.5 rounded-xl">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Stock Initial</label>
+                        <input type="number" id="prod-stock" required class="glass-input w-full p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Seuil Alerte Min.</label>
+                        <input type="number" id="prod-min" required class="glass-input w-full p-2.5 rounded-xl">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2.5 pt-3">
+                    <button type="button" onclick="closeModal('modal-product')" class="px-4 py-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold">Annuler</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl font-bold bg-cyan-500 hover:bg-cyan-400 text-gray-950 flex items-center gap-1.5 shadow-lg shadow-cyan-500/20">
+                        <i data-lucide="check" class="w-4 h-4"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CONTACT FORM -->
+    <div id="modal-contact" class="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-3xl space-y-4 border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-800 pb-3">
+                <h3 id="modal-contact-title" class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-purple-500"></i> Contact / Tiers
+                </h3>
+                <button onclick="closeModal('modal-contact')" class="text-gray-400 hover:text-slate-900 dark:hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-contact" onsubmit="saveContact(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="contact-id">
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Type de Tiers</label>
+                    <select id="contact-type" class="glass-input w-full p-2.5 rounded-xl">
+                        <option value="CLIENT">Client</option>
+                        <option value="FOURNISSEUR">Fournisseur</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Nom / Raison Sociale</label>
+                    <input type="text" id="contact-name" required class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="mail" class="w-3.5 h-3.5 text-gray-400"></i> Email
+                    </label>
+                    <input type="email" id="contact-email" class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="phone" class="w-3.5 h-3.5 text-gray-400"></i> Téléphone
+                    </label>
+                    <input type="text" id="contact-phone" class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-gray-400"></i> Date d'enregistrement
+                    </label>
+                    <input type="date" id="contact-date" required class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div class="flex justify-end gap-2.5 pt-3">
+                    <button type="button" onclick="closeModal('modal-contact')" class="px-4 py-2 rounded-xl text-gray-500 font-semibold">Annuler</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-1.5 shadow-lg shadow-purple-500/20">
+                        <i data-lucide="check" class="w-4 h-4"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: COMMERCIAL DOCUMENT BUILDER -->
+    <div id="modal-doc" class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="glass-panel w-full max-w-4xl p-6 rounded-3xl space-y-5 border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-800 pb-3">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="file-plus" class="w-5 h-5 text-cyan-500"></i> Édition de Document Commercial
+                </h3>
+                <button onclick="closeModal('modal-doc')" class="text-gray-400 hover:text-slate-900 dark:hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form id="form-doc" onsubmit="saveDocument(event)" class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Type de Document</label>
+                        <select id="doc-type" onchange="updateDocContactList()" class="glass-input w-full p-2.5 rounded-xl">
+                            <option value="FACTURE_VENTE">Facture de Vente</option>
+                            <option value="DEVIS">Devis Client</option>
+                            <option value="BON_ACHAT">Bon d'Achat Fournisseur</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Tiers / Contact</label>
+                        <select id="doc-contact" required class="glass-input w-full p-2.5 rounded-xl"></select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Date d'Émission</label>
+                        <input type="date" id="doc-date" required class="glass-input w-full p-2.5 rounded-xl">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block uppercase text-[11px] font-bold text-gray-500 dark:text-gray-400">Lignes de produits</label>
+                        <button type="button" onclick="addDocLine()" class="text-xs font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1 hover:bg-cyan-500/25">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Ajouter une ligne
+                        </button>
+                    </div>
+
+                    <div class="border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-100 dark:bg-gray-900/90 text-[11px] uppercase text-gray-500 dark:text-gray-400">
+                                <tr>
+                                    <th class="p-2.5">Produit</th>
+                                    <th class="p-2.5 w-24">Quantité</th>
+                                    <th class="p-2.5 w-32">Prix Unit. HT</th>
+                                    <th class="p-2.5 w-32 text-right">Total HT</th>
+                                    <th class="p-2.5 w-10 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="doc-lines-container" class="divide-y divide-gray-200 dark:divide-gray-800/60">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-gray-200 dark:border-gray-800">
+                    <div class="space-y-2">
+                        <label class="block text-gray-500 dark:text-gray-400 font-semibold">Taux TVA (%)</label>
+                        <input type="number" id="doc-tva-rate" value="18" onchange="recalculateDocTotals()" class="glass-input w-32 p-2.5 rounded-xl">
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl space-y-1.5 text-right font-medium">
+                        <div class="flex justify-between text-gray-500 dark:text-gray-400">
+                            <span>Total HT :</span>
+                            <span id="doc-summary-ht" class="font-bold text-slate-900 dark:text-white">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between text-gray-500 dark:text-gray-400">
+                            <span>Montant TVA :</span>
+                            <span id="doc-summary-tva" class="font-bold text-slate-900 dark:text-white">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-extrabold text-slate-900 dark:text-white pt-2 border-t border-gray-200 dark:border-gray-800">
+                            <span>Total TTC :</span>
+                            <span id="doc-summary-ttc" class="text-cyan-500">0,00 €</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2.5 pt-3">
+                    <button type="button" onclick="closeModal('modal-doc')" class="px-4 py-2 rounded-xl text-gray-500 font-semibold">Annuler</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 flex items-center gap-1.5">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i> Enregistrer Document
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: PRINT PREVIEW -->
+    <div id="modal-preview" class="fixed inset-0 bg-slate-900/80 dark:bg-black/90 z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="w-full max-w-3xl glass-panel p-6 rounded-3xl border border-gray-200 dark:border-gray-700 relative space-y-5">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-800 pb-3 no-print">
+                <span class="text-xs uppercase font-extrabold tracking-widest text-cyan-500 flex items-center gap-1.5">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Aperçu Avant Impression
+                </span>
+                <div class="flex gap-2">
+                    <button onclick="window.print()" class="px-4 py-2 bg-cyan-500 text-gray-950 font-bold rounded-xl text-xs flex items-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Imprimer / PDF
+                    </button>
+                    <button onclick="closeModal('modal-preview')" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Invoice Area -->
+            <div id="printable-area" class="print-only space-y-6 text-xs">
+                <div class="flex justify-between items-start border-b border-gray-200 dark:border-gray-800 pb-4">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-cyan-500" id="prev-company">NEXUS ERP</h2>
+                        <p class="text-gray-500 dark:text-gray-400">Gestion Commerciale & Trésorerie</p>
+                    </div>
+                    <div class="text-right">
+                        <h3 id="prev-doc-type" class="text-base font-extrabold text-slate-900 dark:text-white uppercase">FACTURE</h3>
+                        <p id="prev-doc-num" class="font-mono text-cyan-500 font-bold">FAC-2026-001</p>
+                        <p id="prev-doc-date" class="text-gray-500 dark:text-gray-400">Date: 02/11/2026</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl flex justify-between">
+                    <div>
+                        <span class="uppercase text-[10px] font-bold text-gray-400">Destinataire:</span>
+                        <h4 id="prev-contact-name" class="text-sm font-bold text-slate-900 dark:text-white">Client Exemple</h4>
+                        <p id="prev-contact-details" class="text-gray-500 dark:text-gray-400">email@client.com | +33 6 00 00 00 00</p>
+                    </div>
+                </div>
+
+                <table class="w-full text-left">
+                    <thead class="border-b border-gray-200 dark:border-gray-800 text-gray-400 uppercase text-[10px]">
+                        <tr>
+                            <th class="py-2">Description</th>
+                            <th class="py-2 text-center">Quantité</th>
+                            <th class="py-2 text-right">Prix Unit. HT</th>
+                            <th class="py-2 text-right">Total HT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prev-items-body" class="divide-y divide-gray-200 dark:divide-gray-800/40">
+                    </tbody>
+                </table>
+
+                <div class="flex justify-end border-t border-gray-200 dark:border-gray-800 pt-3">
+                    <div class="w-60 space-y-1 text-right">
+                        <div class="flex justify-between text-gray-500">
+                            <span>Total HT:</span>
+                            <span id="prev-total-ht" class="font-bold text-slate-900 dark:text-white">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between text-gray-500">
+                            <span>TVA:</span>
+                            <span id="prev-total-tva" class="font-bold text-slate-900 dark:text-white">0,00 €</span>
+                        </div>
+                        <div class="flex justify-between text-sm font-extrabold text-cyan-500 pt-2 border-t border-gray-200 dark:border-gray-800">
+                            <span>Total TTC:</span>
+                            <span id="prev-total-ttc">0,00 €</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: ENTERPRISE SETTINGS -->
+    <div id="modal-settings" class="fixed inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel w-full max-w-md p-6 rounded-3xl space-y-4 border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-800 pb-3">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-5 h-5 text-cyan-500"></i> Identité de l'entreprise
+                </h3>
+                <button onclick="closeModal('modal-settings')" class="text-gray-400 hover:text-slate-900 dark:hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Nom de l'entreprise</label>
+                    <input id="set-name" class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Slogan / Activité</label>
+                    <input id="set-sub" class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Logo (PNG, JPG, SVG)</label>
+                    <div class="flex items-center gap-3">
+                        <img id="set-logo-prev" class="w-10 h-10 rounded-xl object-cover bg-gray-200 dark:bg-gray-800 hidden" alt="logo prev">
+                        <input type="file" accept="image/*" onchange="pickLogo(event)" class="text-xs text-gray-400">
+                        <button type="button" onclick="tmpLogo='';document.getElementById('set-logo-prev').classList.add('hidden')" class="text-rose-500 font-semibold">Retirer</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold">Code d'accès Direction</label>
+                    <input id="set-code" class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div class="flex justify-end gap-2.5 pt-2">
+                    <button onclick="closeModal('modal-settings')" class="px-4 py-2 rounded-xl text-gray-500 font-semibold">Annuler</button>
+                    <button onclick="saveSettings()" class="px-4 py-2 rounded-xl font-bold bg-cyan-500 text-gray-950 flex items-center gap-1.5 shadow-lg shadow-cyan-500/20">
+                        <i data-lucide="check" class="w-4 h-4"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 6: LOGIN OVERLAY -->
+    <div id="login" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/90 dark:bg-[#0B0F19]/95 backdrop-blur-md">
+        <form onsubmit="doLogin(event)" class="glass-panel w-full max-w-sm p-7 rounded-3xl space-y-4 border border-gray-200 dark:border-gray-700 shadow-2xl">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-cyan-500/30 overflow-hidden">
+                    <img id="login-img" class="hidden w-full h-full object-cover" alt="login logo">
+                    <i id="login-ic" data-lucide="layers" class="w-7 h-7"></i>
+                </div>
+                <h2 id="login-name" class="text-xl font-extrabold text-slate-900 dark:text-white tracking-wide">NEXUS ERP</h2>
+                <p class="text-xs text-cyan-600 dark:text-cyan-400 font-semibold">Identification de session</p>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="user" class="w-3.5 h-3.5 text-gray-400"></i> Votre Nom
+                    </label>
+                    <input id="lg-name" required class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="shield" class="w-3.5 h-3.5 text-gray-400"></i> Rôle d'accès
+                    </label>
+                    <select id="lg-role" onchange="onRole()" class="glass-input w-full p-2.5 rounded-xl">
+                        <option value="direction">Direction (Accès Complet)</option>
+                        <option value="equipe">Équipe (Lecture & Opérations)</option>
+                    </select>
+                </div>
+                <div id="lg-code-row">
+                    <label class="block text-gray-500 dark:text-gray-400 mb-1 font-semibold flex items-center gap-1">
+                        <i data-lucide="key-round" class="w-3.5 h-3.5 text-gray-400"></i> Code Direction <span class="text-gray-400">(défaud: 1234)</span>
+                    </label>
+                    <input id="lg-code" type="password" class="glass-input w-full p-2.5 rounded-xl">
+                </div>
+            </div>
+            <button class="w-full py-3 rounded-xl font-bold text-white text-xs bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
+                <i data-lucide="log-in" class="w-4 h-4"></i> Se connecter
+            </button>
+        </form>
+    </div>
+
+    <!-- CORE JAVASCRIPT APPLICATION -->
+    <script>
+        /* INITIAL STATE & DEMO DATA */
+        const DEFAULT_DATA = {
+            products: [
+                { id: "P1", sku: "LAP-DELL-XPS", name: "Ordinateur Portable XPS 15", buyPrice: 780000, sellPrice: 1170000, stock: 8, minStock: 3 },
+                { id: "P2", sku: "MON-DELL-27", name: "Écran UltraSharp 27'' 4K", buyPrice: 228000, sellPrice: 358000, stock: 2, minStock: 5 },
+                { id: "P3", sku: "KEY-LOGI-MX", name: "Clavier Sans Fil MX Keys", buyPrice: 42000, sellPrice: 71000, stock: 15, minStock: 4 },
+                { id: "P4", sku: "MOU-LOGI-3S", name: "Souris Ergonomique MX Master 3S", buyPrice: 36000, sellPrice: 65000, stock: 1, minStock: 4 }
+            ],
+            contacts: [
+                { id: "C1", type: "CLIENT", name: "Tech Corp France", email: "achat@techcorp.fr", phone: "+33 1 42 68 00 00", date: "2026-09-12" },
+                { id: "C2", type: "CLIENT", name: "Studio Design SAS", email: "compta@studiodesign.io", phone: "+33 4 72 10 20 30", date: "2026-10-05" },
+                { id: "C3", type: "FOURNISSEUR", name: "Grossiste IT Europe", email: "contact@it-europe.com", phone: "+33 9 70 00 11 22", date: "2026-11-01" }
+            ],
+            documents: [
+                {
+                    id: "DOC-1001",
+                    type: "FACTURE_VENTE",
+                    contactId: "C1",
+                    date: "2026-11-01",
+                    items: [{ productId: "P1", qty: 2, price: 1170000 }],
+                    tvaRate: 18,
+                    totalHt: 2340000,
+                    totalTtc: 2761200,
+                    status: "PAYE"
+                },
+                {
+                    id: "DOC-1002",
+                    type: "BON_ACHAT",
+                    contactId: "C3",
+                    date: "2026-10-28",
+                    items: [{ productId: "P2", qty: 5, price: 228000 }],
+                    tvaRate: 18,
+                    totalHt: 1140000,
+                    totalTtc: 1345200,
+                    status: "PAYE"
+                }
+            ],
+            payments: [
+                { id: "PAY-1", docId: "DOC-1001", amount: 2761200, method: "Virement Bancaire", date: "2026-11-01", type: "IN" },
+                { id: "PAY-2", docId: "DOC-1002", amount: 1345200, method: "Virement Bancaire", date: "2026-10-28", type: "OUT" }
+            ],
+            settings: {
+                company: "NEXUS ERP",
+                sub: "Achat & Vente Pro",
+                logo: "",
+                currency: "XOF",
+                years: ["2026"],
+                code: "1234",
+                theme: "dark"
+            }
+        };
+
+        const CURS = {
+            XOF: 'Franc CFA UEMOA (XOF)',
+            XAF: 'Franc CFA CEMAC (XAF)',
+            EUR: 'Euro (€)',
+            USD: 'Dollar US ($)',
+            MAD: 'Dirham marocain (MAD)',
+            NGN: 'Naira nigérian (NGN)',
+            GHS: 'Cedi ghanéen (GHS)'
+        };
+        const MOIS = ['Tous les mois','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+        let appData = loadData();
+        let chartInstance = null;
+        let ME = null;
+        let tmpLogo = '';
+
+        function loadData() {
+            const local = localStorage.getItem('NEXUS_ERP_DATA');
+            if (local) {
+                try { return JSON.parse(local); } catch(e) { console.error(e); }
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_DATA));
+        }
+
+        function saveData() {
+            try { localStorage.setItem('NEXUS_ERP_DATA', JSON.stringify(appData)); } catch(e){}
+            renderAll();
+        }
+
+        function S() {
+            appData.settings = appData.settings || {};
+            const defaults = DEFAULT_DATA.settings;
+            for (const k in defaults) {
+                if (!(k in appData.settings)) appData.settings[k] = defaults[k];
+            }
+            return appData.settings;
+        }
+
+        /* THEME MANAGEMENT (LIGHT/DARK) */
+        function applyTheme() {
+            const isDark = S().theme === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+            const btn = document.getElementById('theme-btn');
+            if (btn) {
+                btn.innerHTML = `<i data-lucide="${isDark ? 'sun' : 'moon'}" class="w-4 h-4"></i>`;
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function toggleTheme() {
+            S().theme = S().theme === 'dark' ? 'light' : 'dark';
+            saveData();
+            applyTheme();
+        }
+
+        function formatCurrency(val) {
+            try {
+                return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: S().currency }).format(val || 0);
+            } catch(e) {
+                return (val || 0) + ' ' + S().currency;
+            }
+        }
+
+        function applyBrand() {
+            const s = S();
+            const g = id => document.getElementById(id);
+            if(g('brand-name')) g('brand-name').textContent = s.company;
+            if(g('brand-sub')) g('brand-sub').textContent = s.sub;
+            if(g('login-name')) g('login-name').textContent = s.company;
+            if(g('prev-company')) g('prev-company').textContent = s.company;
+            document.title = s.company + ' – Management Achat & Vente';
+
+            [['brand-img','brand-icon'],['login-img','login-ic']].forEach(([imgId, icId]) => {
+                const imgEl = g(imgId), icEl = g(icId);
+                if (imgEl && icEl) {
+                    imgEl.classList.toggle('hidden', !s.logo);
+                    if (s.logo) imgEl.src = s.logo;
+                    icEl.classList.toggle('hidden', !!s.logo);
+                }
+            });
+
+            document.querySelectorAll('.cur-code').forEach(e => e.textContent = s.currency);
+            if (g('cur-select')) g('cur-select').value = s.currency;
+        }
+
+        function setCurrency(c) {
+            S().currency = c;
+            saveData();
+            renderAll();
+        }
+
+        /* NAVIGATION CONTROL ENGINE */
+        function switchTab(tabId) {
+            if (ME && ME.role === 'equipe' && tabId === 'finances') tabId = 'dashboard';
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Desktop Sidebar Buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-600', 'dark:text-cyan-400', 'bg-cyan-500/10', 'border', 'border-cyan-500/20');
+                btn.classList.add('text-gray-500', 'dark:text-gray-400');
+            });
+
+            // Mobile Dock Buttons
+            document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-500', 'font-bold');
+                btn.classList.add('text-gray-400', 'font-medium');
+            });
+
+            const activeTab = document.getElementById(`section-${tabId}`);
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            const activeMobNav = document.getElementById(`mob-nav-${tabId}`);
+
+            if (activeTab) activeTab.classList.remove('hidden');
+            if (activeNav) {
+                activeNav.classList.add('text-cyan-600', 'dark:text-cyan-400', 'bg-cyan-500/10', 'border', 'border-cyan-500/20');
+                activeNav.classList.remove('text-gray-500', 'dark:text-gray-400');
+            }
+            if (activeMobNav) {
+                activeMobNav.classList.add('text-cyan-500', 'font-bold');
+                activeMobNav.classList.remove('text-gray-400', 'font-medium');
+            }
+
+            const titles = {
+                'dashboard': ['Tableau de bord', 'Vue d\'ensemble des activités et performances.'],
+                'products': ['Stock & Produits', 'Inventaire en temps réel et alertes de réapprovisionnement.'],
+                'documents': ['Commercial & Docs', 'Factures, devis et bons d\'approvisionnement.'],
+                'contacts': ['Répertoire Contacts', 'Fichier centralisé clients et fournisseurs.'],
+                'finances': ['Trésorerie & Caisse', 'Flux financiers, solde et journaux de caisse.']
+            };
+
+            if (titles[tabId]) {
+                document.getElementById('page-title').innerText = titles[tabId][0];
+                document.getElementById('page-subtitle').innerText = titles[tabId][1];
+            }
+
+            if (tabId === 'dashboard') renderChart();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        /* RENDERING ENGINE */
+        function renderAll() {
+            renderDashboardStats();
+            renderProductsTable();
+            renderDocumentsTable();
+            renderContactsGrid();
+            renderFinances();
+            applyBrand();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // 1. Dashboard Stats & Recent Docs
+        function renderDashboardStats() {
+            const salesDocs = appData.documents.filter(d => d.type === 'FACTURE_VENTE');
+            const purchaseDocs = appData.documents.filter(d => d.type === 'BON_ACHAT');
+
+            const totalSales = salesDocs.reduce((acc, d) => acc + d.totalHt, 0);
+            const totalPurchases = purchaseDocs.reduce((acc, d) => acc + d.totalHt, 0);
+            const netProfit = totalSales - totalPurchases;
+            const profitRatio = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0;
+
+            const lowStockProducts = appData.products.filter(p => p.stock <= p.minStock);
+
+            document.getElementById('stat-sales').innerText = formatCurrency(totalSales);
+            document.getElementById('stat-purchases').innerText = formatCurrency(totalPurchases);
+            document.getElementById('stat-profit').innerText = formatCurrency(netProfit);
+            document.getElementById('stat-profit-ratio').innerText = `${profitRatio}% de marge brute`;
+            document.getElementById('stat-low-stock').innerText = lowStockProducts.length;
+
+            // Low Stock Items List
+            const lowStockContainer = document.getElementById('dashboard-low-stock-list');
+            if (lowStockProducts.length === 0) {
+                lowStockContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Tous les produits sont en stock suffisant.</p>`;
+            } else {
+                lowStockContainer.innerHTML = lowStockProducts.map(p => `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-100 dark:bg-gray-900/60 border border-amber-500/20 text-xs">
+                        <div>
+                            <p class="font-bold text-slate-900 dark:text-gray-200">${escapeHtml(p.name)}</p>
+                            <p class="text-[10px] text-gray-500 font-mono">SKU: ${p.sku}</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold text-[11px]">
+                            ${p.stock} / min ${p.minStock}
+                        </span>
+                    </div>
+                `).join('');
+            }
+
+            // Recent Documents Table
+            const recentDocsContainer = document.getElementById('dashboard-recent-docs');
+            const recentDocs = [...appData.documents].reverse().slice(0, 5);
+
+            recentDocsContainer.innerHTML = recentDocs.map(doc => {
+                const contact = appData.contacts.find(c => c.id === doc.contactId);
+                return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                        <td class="p-3 font-mono font-bold text-cyan-600 dark:text-cyan-400">${doc.id}</td>
+                        <td class="p-3">${getDocBadge(doc.type)}</td>
+                        <td class="p-3 font-semibold text-slate-900 dark:text-white">${contact ? escapeHtml(contact.name) : 'N/A'}</td>
+                        <td class="p-3 text-gray-500 dark:text-gray-400">${doc.date}</td>
+                        <td class="p-3 font-bold text-slate-900 dark:text-white">${formatCurrency(doc.totalTtc)}</td>
+                        <td class="p-3">${doc.status === 'PAYE' ? '<span class="text-xs text-emerald-500 font-bold flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Payé</span>' : '<span class="text-xs text-amber-500 font-bold flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> En Attente</span>'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 2. Trend Line Chart
+        function renderChart() {
+            const ctx = document.getElementById('chart-sales-trend');
+            if (!ctx) return;
+
+            if (chartInstance) chartInstance.destroy();
+
+            const isDark = S().theme === 'dark';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+            const textColor = isDark ? '#9CA3AF' : '#64748B';
+
+            const labels = ['Août', 'Sept', 'Oct', 'Nov'];
+            const salesData = [1200000, 2400000, 1800000, appData.documents.filter(d => d.type === 'FACTURE_VENTE').reduce((a, b) => a + b.totalHt, 0)];
+            const purchaseData = [800000, 1500000, 900000, appData.documents.filter(d => d.type === 'BON_ACHAT').reduce((a, b) => a + b.totalHt, 0)];
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Ventes HT',
+                            data: salesData,
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Achats HT',
+                            data: purchaseData,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 11 } } }
+                    },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // 3. Products Table
+        function renderProductsTable(filteredProducts = null) {
+            const container = document.getElementById('table-products');
+            const products = filteredProducts || appData.products;
+
+            container.innerHTML = products.map(p => {
+                const isLow = p.stock <= p.minStock;
+                const stockBarWidth = Math.min(100, Math.max(10, (p.stock / (p.minStock * 3)) * 100));
+
+                return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                        <td class="p-3.5 font-mono font-bold text-cyan-600 dark:text-cyan-400">${p.sku}</td>
+                        <td class="p-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="package" class="w-3.5 h-3.5 text-gray-400"></i> ${escapeHtml(p.name)}
+                        </td>
+                        <td class="p-3.5">${formatCurrency(p.buyPrice)}</td>
+                        <td class="p-3.5 text-emerald-600 dark:text-emerald-400 font-bold">${formatCurrency(p.sellPrice)}</td>
+                        <td class="p-3.5 font-extrabold ${isLow ? 'text-amber-500' : 'text-slate-900 dark:text-white'}">${p.stock}</td>
+                        <td class="p-3.5 w-36">
+                            <div class="w-full bg-gray-200 dark:bg-gray-800 h-2 rounded-full overflow-hidden">
+                                <div class="h-full ${isLow ? 'bg-amber-500' : 'bg-cyan-500'}" style="width: ${stockBarWidth}%"></div>
+                            </div>
+                        </td>
+                        <td class="p-3.5 text-right space-x-1.5">
+                            <button onclick="editProduct('${p.id}')" class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-600 dark:text-gray-300"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteProduct('${p.id}')" class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-rose-500/20 text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterProducts() {
+            const query = document.getElementById('search-products').value.toLowerCase();
+            const filtered = appData.products.filter(p => p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query));
+            renderProductsTable(filtered);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // 4. Documents Table
+        function renderDocumentsTable(filteredDocs = null) {
+            const container = document.getElementById('table-documents');
+            const docs = filteredDocs || appData.documents;
+
+            container.innerHTML = docs.map(doc => {
+                const contact = appData.contacts.find(c => c.id === doc.contactId);
+                return `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                        <td class="p-3.5 font-mono font-bold text-cyan-600 dark:text-cyan-400">${doc.id}</td>
+                        <td class="p-3.5">${getDocBadge(doc.type)}</td>
+                        <td class="p-3.5 font-semibold text-slate-900 dark:text-white">${contact ? escapeHtml(contact.name) : 'N/A'}</td>
+                        <td class="p-3.5 text-gray-500 dark:text-gray-400">${doc.date}</td>
+                        <td class="p-3.5">${formatCurrency(doc.totalHt)}</td>
+                        <td class="p-3.5 font-extrabold text-slate-900 dark:text-white">${formatCurrency(doc.totalTtc)}</td>
+                        <td class="p-3.5">${doc.status === 'PAYE' ? '<span class="px-2 py-0.5 text-[11px] rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30">PAYÉ</span>' : '<span class="px-2 py-0.5 text-[11px] rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30">EN ATTENTE</span>'}</td>
+                        <td class="p-3.5 text-right space-x-1.5">
+                            <button onclick="previewDocument('${doc.id}')" class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-cyan-500/20 text-cyan-500"><i data-lucide="eye" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteDocument('${doc.id}')" class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-rose-500/20 text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterDocs() {
+            const query = document.getElementById('search-docs').value.toLowerCase();
+            const typeFilter = document.getElementById('filter-doc-type').value;
+
+            let filtered = appData.documents.filter(d => {
+                const matchQuery = d.id.toLowerCase().includes(query);
+                const matchType = typeFilter === 'ALL' || d.type === typeFilter;
+                return matchQuery && matchType;
+            });
+            renderDocumentsTable(filtered);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // 5. Contacts Grid & Filtering
+        function contactYears() {
+            const y = new Set(S().years.map(String));
+            appData.contacts.forEach(c => c.date && y.add(c.date.slice(0,4)));
+            return [...y].sort().reverse();
+        }
+
+        function fillFilters() {
+            const m = document.getElementById('flt-month'), y = document.getElementById('flt-year');
+            if(!m || !y) return;
+            const pm = m.value, py = y.value;
+            m.innerHTML = MOIS.map((n,i) => `<option value="${i ? String(i).padStart(2,'0') : ''}">${n}</option>`).join('');
+            y.innerHTML = '<option value="">Toutes les années</option>' + contactYears().map(v => `<option>${v}</option>`).join('');
+            m.value = pm; y.value = py;
+        }
+
+        function getFilteredContacts() {
+            const q = (document.getElementById('search-contacts').value || '').toLowerCase();
+            const m = document.getElementById('flt-month').value;
+            const y = document.getElementById('flt-year').value;
+            const t = document.getElementById('flt-type').value;
+
+            return appData.contacts.filter(c => 
+                (!q || c.name.toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q)) &&
+                (!y || (c.date||'').slice(0,4) === y) &&
+                (!m || (c.date||'').slice(5,7) === m) &&
+                (!t || c.type === t)
+            );
+        }
+
+        function renderContactsGrid() {
+            fillFilters();
+            const filtered = getFilteredContacts();
+            document.getElementById('contact-count').textContent = `${filtered.length} fiche(s) affichée(s) sur ${appData.contacts.length}`;
+
+            const container = document.getElementById('grid-contacts');
+            container.innerHTML = filtered.map(c => `
+                <div class="glass-panel glass-panel-hover p-5 rounded-2xl space-y-3 relative">
+                    <div class="flex justify-between items-start">
+                        <span class="px-2.5 py-1 rounded-md text-[11px] font-extrabold flex items-center gap-1 ${c.type === 'CLIENT' ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'}">
+                            <i data-lucide="${c.type === 'CLIENT' ? 'user-check' : 'truck'}" class="w-3 h-3"></i> ${c.type}
+                        </span>
+                        <div class="space-x-1">
+                            <button onclick="editContact('${c.id}')" class="p-1 text-gray-400 hover:text-slate-900 dark:hover:text-white"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteContact('${c.id}')" class="p-1 text-gray-400 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <h4 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="building" class="w-4 h-4 text-gray-400"></i> ${escapeHtml(c.name)}
+                    </h4>
+                    <div class="space-y-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                        <p class="flex items-center gap-2"><i data-lucide="mail" class="w-3.5 h-3.5 text-cyan-500"></i> ${escapeHtml(c.email || 'N/A')}</p>
+                        <p class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-purple-500"></i> ${escapeHtml(c.phone || 'N/A')}</p>
+                        <p class="flex items-center gap-2"><i data-lucide="calendar" class="w-3.5 h-3.5 text-emerald-500"></i> Registre: ${escapeHtml(c.date || 'N/A')}</p>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400 col-span-3">Aucun contact trouvé pour cette sélection.</p>';
+        }
+
+        function filterContacts() { renderContactsGrid(); if (window.lucide) lucide.createIcons(); }
+
+        function addYear() {
+            const v = document.getElementById('flt-newyear').value.trim();
+            if (!/^\d{4}$/.test(v)) { showToast('Année invalide', 'rose'); return; }
+            const s = S();
+            if (!s.years.includes(v)) s.years.push(v);
+            saveData();
+            fillFilters();
+            document.getElementById('flt-year').value = v;
+            document.getElementById('flt-newyear').value = '';
+            filterContacts();
+            showToast('Année ' + v + ' ajoutée !');
+        }
+
+        // 6. Finances & Cash Flow
+        function renderFinances() {
+            const totalIn = appData.payments.filter(p => p.type === 'IN').reduce((acc, p) => acc + p.amount, 0);
+            const totalOut = appData.payments.filter(p => p.type === 'OUT').reduce((acc, p) => acc + p.amount, 0);
+            const balance = totalIn - totalOut;
+
+            document.getElementById('finance-in').innerText = formatCurrency(totalIn);
+            document.getElementById('finance-out').innerText = formatCurrency(totalOut);
+            document.getElementById('finance-balance').innerText = formatCurrency(balance);
+
+            const payDocSelect = document.getElementById('pay-doc-id');
+            const pendingDocs = appData.documents.filter(d => d.status !== 'PAYE');
+            payDocSelect.innerHTML = pendingDocs.map(d => `<option value="${d.id}">${d.id} - ${d.type} (${formatCurrency(d.totalTtc)})</option>`).join('');
+
+            const paymentsContainer = document.getElementById('table-payments');
+            paymentsContainer.innerHTML = appData.payments.map(p => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-white/5 transition">
+                    <td class="p-3.5 text-gray-500 dark:text-gray-400">${p.date}</td>
+                    <td class="p-3.5 font-mono font-bold text-cyan-600 dark:text-cyan-400">${p.docId}</td>
+                    <td class="p-3.5 flex items-center gap-1.5"><i data-lucide="credit-card" class="w-3.5 h-3.5 text-gray-400"></i> ${p.method}</td>
+                    <td class="p-3.5 font-bold ${p.type === 'IN' ? 'text-emerald-500' : 'text-rose-500'}">${p.type === 'IN' ? 'ENTRÉE' : 'SORTIE'}</td>
+                    <td class="p-3.5 text-right font-extrabold text-slate-900 dark:text-white">${formatCurrency(p.amount)}</td>
+                </tr>
+            `).join('');
+        }
+
+        /* HANDLERS & MODAL CONTROLS */
+        function openProductModal(prodId = null) {
+            document.getElementById('form-product').reset();
+            document.getElementById('prod-id').value = '';
+
+            if (prodId) {
+                const prod = appData.products.find(p => p.id === prodId);
+                if (prod) {
+                    document.getElementById('modal-product-title').innerText = "Modifier Produit";
+                    document.getElementById('prod-id').value = prod.id;
+                    document.getElementById('prod-sku').value = prod.sku;
+                    document.getElementById('prod-name').value = prod.name;
+                    document.getElementById('prod-buy').value = prod.buyPrice;
+                    document.getElementById('prod-sell').value = prod.sellPrice;
+                    document.getElementById('prod-stock').value = prod.stock;
+                    document.getElementById('prod-min').value = prod.minStock;
+                }
+            } else {
+                document.getElementById('modal-product-title').innerText = "Ajouter Produit";
+            }
+            openModal('modal-product');
+        }
+
+        function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const newProd = {
+                id: id || 'P' + Date.now(),
+                sku: document.getElementById('prod-sku').value,
+                name: document.getElementById('prod-name').value,
+                buyPrice: parseFloat(document.getElementById('prod-buy').value) || 0,
+                sellPrice: parseFloat(document.getElementById('prod-sell').value) || 0,
+                stock: parseInt(document.getElementById('prod-stock').value) || 0,
+                minStock: parseInt(document.getElementById('prod-min').value) || 0
+            };
+
+            if (id) {
+                const idx = appData.products.findIndex(p => p.id === id);
+                if (idx !== -1) appData.products[idx] = newProd;
+            } else {
+                appData.products.push(newProd);
+            }
+
+            saveData();
+            closeModal('modal-product');
+            showToast("Produit sauvegardé !");
+        }
+
+        function deleteProduct(id) {
+            if (confirm("Supprimer ce produit de l'inventaire ?")) {
+                appData.products = appData.products.filter(p => p.id !== id);
+                saveData();
+                showToast("Produit supprimé", "rose");
+            }
+        }
+
+        function editProduct(id) { openProductModal(id); }
+
+        function openContactModal(contactId = null) {
+            document.getElementById('form-contact').reset();
+            document.getElementById('contact-id').value = '';
+            document.getElementById('contact-date').value = new Date().toISOString().split('T')[0];
+
+            if (contactId) {
+                const contact = appData.contacts.find(c => c.id === contactId);
+                if (contact) {
+                    document.getElementById('contact-id').value = contact.id;
+                    document.getElementById('contact-type').value = contact.type;
+                    document.getElementById('contact-name').value = contact.name;
+                    document.getElementById('contact-email').value = contact.email || '';
+                    document.getElementById('contact-phone').value = contact.phone || '';
+                    document.getElementById('contact-date').value = contact.date || '';
+                }
+            }
+            openModal('modal-contact');
+        }
+
+        function saveContact(e) {
+            e.preventDefault();
+            const id = document.getElementById('contact-id').value;
+            const newContact = {
+                id: id || 'C' + Date.now(),
+                type: document.getElementById('contact-type').value,
+                name: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                phone: document.getElementById('contact-phone').value,
+                date: document.getElementById('contact-date').value
+            };
+
+            if (id) {
+                const idx = appData.contacts.findIndex(c => c.id === id);
+                if (idx !== -1) appData.contacts[idx] = newContact;
+            } else {
+                appData.contacts.push(newContact);
+            }
+
+            saveData();
+            closeModal('modal-contact');
+            showToast("Contact enregistré !");
+        }
+
+        function deleteContact(id) {
+            if (confirm("Supprimer la fiche contact ?")) {
+                appData.contacts = appData.contacts.filter(c => c.id !== id);
+                saveData();
+                showToast("Contact supprimé", "rose");
+            }
+        }
+
+        function editContact(id) { openContactModal(id); }
+
+        /* COMMERCIAL DOCUMENT GENERATOR */
+        function updateDocContactList() {
+            const type = document.getElementById('doc-type').value;
+            const select = document.getElementById('doc-contact');
+
+            const filteredContacts = appData.contacts.filter(c => {
+                if (type === 'BON_ACHAT') return c.type === 'FOURNISSEUR';
+                return c.type === 'CLIENT';
+            });
+
+            select.innerHTML = filteredContacts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+        }
+
+        function addDocLine() {
+            const container = document.getElementById('doc-lines-container');
+            const rowId = 'line-' + Date.now();
+
+            const tr = document.createElement('tr');
+            tr.id = rowId;
+            tr.className = "hover:bg-gray-50 dark:hover:bg-white/5 transition";
+            tr.innerHTML = `
+                <td class="p-2.5">
+                    <select onchange="updateLinePrice('${rowId}')" class="doc-line-prod glass-input w-full p-2 rounded-xl text-xs">
+                        ${appData.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)} (${p.sku})</option>`).join('')}
+                    </select>
+                </td>
+                <td class="p-2.5">
+                    <input type="number" min="1" value="1" onchange="recalculateDocTotals()" class="doc-line-qty glass-input w-full p-2 rounded-xl text-xs text-center">
+                </td>
+                <td class="p-2.5">
+                    <input type="number" step="0.01" value="0" onchange="recalculateDocTotals()" class="doc-line-price glass-input w-full p-2 rounded-xl text-xs text-right">
+                </td>
+                <td class="p-2.5 text-right font-bold text-slate-900 dark:text-white doc-line-total">0.00 €</td>
+                <td class="p-2.5 text-center">
+                    <button type="button" onclick="document.getElementById('${rowId}').remove(); recalculateDocTotals();" class="text-rose-500 hover:text-rose-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </td>
+            `;
+            container.appendChild(tr);
+            updateLinePrice(rowId);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateLinePrice(rowId) {
+            const row = document.getElementById(rowId);
+            const prodId = row.querySelector('.doc-line-prod').value;
+            const docType = document.getElementById('doc-type').value;
+
+            const product = appData.products.find(p => p.id === prodId);
+            if (product) {
+                const priceInput = row.querySelector('.doc-line-price');
+                priceInput.value = docType === 'BON_ACHAT' ? product.buyPrice : product.sellPrice;
+            }
+            recalculateDocTotals();
+        }
+
+        function recalculateDocTotals() {
+            let totalHt = 0;
+            const rows = document.querySelectorAll('#doc-lines-container tr');
+
+            rows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.doc-line-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.doc-line-price').value) || 0;
+                const lineTotal = qty * price;
+
+                row.querySelector('.doc-line-total').innerText = formatCurrency(lineTotal);
+                totalHt += lineTotal;
+            });
+
+            const tvaRate = parseFloat(document.getElementById('doc-tva-rate').value) || 0;
+            const tvaAmount = totalHt * (tvaRate / 100);
+            const totalTtc = totalHt + tvaAmount;
+
+            document.getElementById('doc-summary-ht').innerText = formatCurrency(totalHt);
+            document.getElementById('doc-summary-tva').innerText = formatCurrency(tvaAmount);
+            document.getElementById('doc-summary-ttc').innerText = formatCurrency(totalTtc);
+        }
+
+        function saveDocument(e) {
+            e.preventDefault();
+            const type = document.getElementById('doc-type').value;
+            const contactId = document.getElementById('doc-contact').value;
+            const date = document.getElementById('doc-date').value;
+            const tvaRate = parseFloat(document.getElementById('doc-tva-rate').value) || 0;
+
+            const rows = document.querySelectorAll('#doc-lines-container tr');
+            if (rows.length === 0) {
+                alert("Veuillez ajouter au moins un produit au document.");
+                return;
+            }
+
+            const items = [];
+            let totalHt = 0;
+
+            rows.forEach(row => {
+                const productId = row.querySelector('.doc-line-prod').value;
+                const qty = parseInt(row.querySelector('.doc-line-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.doc-line-price').value) || 0;
+
+                items.push({ productId, qty, price });
+                totalHt += qty * price;
+
+                // Inventory Update Logic
+                const product = appData.products.find(p => p.id === productId);
+                if (product) {
+                    if (type === 'FACTURE_VENTE') {
+                        product.stock = Math.max(0, product.stock - qty);
+                    } else if (type === 'BON_ACHAT') {
+                        product.stock += qty;
+                    }
+                }
+            });
+
+            const totalTtc = totalHt * (1 + tvaRate / 100);
+            const docId = 'DOC-' + Math.floor(1000 + Math.random() * 9000);
+
+            appData.documents.push({
+                id: docId,
+                type,
+                contactId,
+                date: date || new Date().toISOString().split('T')[0],
+                items,
+                tvaRate,
+                totalHt,
+                totalTtc,
+                status: 'EN_ATTENTE'
+            });
+
+            saveData();
+            closeModal('modal-doc');
+            showToast(`Document ${docId} généré ! Stock mis à jour.`);
+        }
+
+        function deleteDocument(id) {
+            if (confirm("Supprimer définitivement ce document ?")) {
+                appData.documents = appData.documents.filter(d => d.id !== id);
+                saveData();
+                showToast("Document supprimé", "rose");
+            }
+        }
+
+        function previewDocument(docId) {
+            const doc = appData.documents.find(d => d.id === docId);
+            if (!doc) return;
+
+            const contact = appData.contacts.find(c => c.id === doc.contactId);
+
+            document.getElementById('prev-doc-type').innerText = doc.type.replace('_', ' ');
+            document.getElementById('prev-doc-num').innerText = doc.id;
+            document.getElementById('prev-doc-date').innerText = `Date: ${doc.date}`;
+            document.getElementById('prev-contact-name').innerText = contact ? contact.name : 'N/A';
+            document.getElementById('prev-contact-details').innerText = contact ? `${contact.email} | ${contact.phone}` : '';
+
+            const itemsBody = document.getElementById('prev-items-body');
+            itemsBody.innerHTML = doc.items.map(item => {
+                const prod = appData.products.find(p => p.id === item.productId);
+                return `
+                    <tr>
+                        <td class="py-2.5 font-bold text-slate-900 dark:text-white">${prod ? escapeHtml(prod.name) : 'Article'}</td>
+                        <td class="py-2.5 text-center">${item.qty}</td>
+                        <td class="py-2.5 text-right">${formatCurrency(item.price)}</td>
+                        <td class="py-2.5 text-right font-extrabold">${formatCurrency(item.qty * item.price)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('prev-total-ht').innerText = formatCurrency(doc.totalHt);
+            document.getElementById('prev-total-tva').innerText = formatCurrency(doc.totalTtc - doc.totalHt);
+            document.getElementById('prev-total-ttc').innerText = formatCurrency(doc.totalTtc);
+
+            openModal('modal-preview');
+        }
+
+        function handlePaymentSubmit(e) {
+            e.preventDefault();
+            const docId = document.getElementById('pay-doc-id').value;
+            const amount = parseFloat(document.getElementById('pay-amount').value) || 0;
+            const method = document.getElementById('pay-method').value;
+            const date = document.getElementById('pay-date').value;
+
+            const doc = appData.documents.find(d => d.id === docId);
+            if (!doc) return;
+
+            const payType = doc.type === 'BON_ACHAT' ? 'OUT' : 'IN';
+
+            appData.payments.push({
+                id: 'PAY-' + Date.now(),
+                docId,
+                amount,
+                method,
+                date,
+                type: payType
+            });
+
+            doc.status = 'PAYE';
+            saveData();
+            showToast("Règlement validé et comptabilisé !");
+        }
+
+        /* SETTINGS & AUTH LOGIC */
+        function openSettings() {
+            const s = S();
+            document.getElementById('set-name').value = s.company;
+            document.getElementById('set-sub').value = s.sub;
+            document.getElementById('set-code').value = s.code;
+            tmpLogo = s.logo;
+            const p = document.getElementById('set-logo-prev');
+            p.classList.toggle('hidden', !s.logo);
+            if (s.logo) p.src = s.logo;
+            openModal('modal-settings');
+        }
+
+        function pickLogo(e) {
+            const f = e.target.files[0];
+            if (!f) return;
+            const r = new FileReader();
+            r.onload = () => {
+                const im = new Image();
+                im.onload = () => {
+                    const k = Math.min(1, 256 / Math.max(im.width, im.height) || 1);
+                    const c = document.createElement('canvas');
+                    c.width = Math.max(1, im.width * k);
+                    c.height = Math.max(1, im.height * k);
+                    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+                    tmpLogo = c.toDataURL('image/png');
+                    const p = document.getElementById('set-logo-prev');
+                    p.src = tmpLogo;
+                    p.classList.remove('hidden');
+                };
+                im.src = r.result;
+            };
+            r.readAsDataURL(f);
+        }
+
+        function saveSettings() {
+            const s = S();
+            s.company = document.getElementById('set-name').value.trim() || 'Mon Entreprise';
+            s.sub = document.getElementById('set-sub').value.trim();
+            s.logo = tmpLogo;
+            s.code = document.getElementById('set-code').value.trim() || '1234';
+            saveData();
+            applyBrand();
+            closeModal('modal-settings');
+            showToast('Identité ERP mise à jour !');
+        }
+
+        function onRole() {
+            document.getElementById('lg-code-row').classList.toggle('hidden', document.getElementById('lg-role').value !== 'direction');
+        }
+
+        function doLogin(e) {
+            e.preventDefault();
+            if (document.getElementById('lg-role').value === 'direction' && document.getElementById('lg-code').value !== S().code) {
+                showToast('Code Direction incorrect !', 'rose');
+                return;
+            }
+            ME = { name: document.getElementById('lg-name').value.trim(), role: document.getElementById('lg-role').value };
+            try { sessionStorage.setItem('ERP_ME', JSON.stringify(ME)); } catch(_) {}
+            enter();
+        }
+
+        function enter() {
+            document.getElementById('login').classList.add('hidden');
+            document.body.dataset.role = ME.role;
+            document.getElementById('user-badge').textContent = `${ME.name} · ${ME.role === 'direction' ? 'Direction' : 'Équipe'}`;
+            switchTab('dashboard');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function logout() {
+            try { sessionStorage.removeItem('ERP_ME'); } catch(_) {}
+            ME = null;
+            document.body.dataset.role = '';
+            document.getElementById('lg-code').value = '';
+            document.getElementById('login').classList.remove('hidden');
+        }
+
+        /* HELPER UTILITIES */
+        function getDocBadge(type) {
+            switch (type) {
+                case 'FACTURE_VENTE':
+                    return '<span class="px-2 py-0.5 text-[11px] rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30">Facture Vente</span>';
+                case 'DEVIS':
+                    return '<span class="px-2 py-0.5 text-[11px] rounded-md bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30">Devis Client</span>';
+                case 'BON_ACHAT':
+                    return '<span class="px-2 py-0.5 text-[11px] rounded-md bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold border border-purple-500/30">Bon d\'Achat</span>';
+                default:
+                    return type;
+            }
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if (id === 'modal-doc') {
+                updateDocContactList();
+                document.getElementById('doc-lines-container').innerHTML = '';
+                addDocLine();
+                document.getElementById('doc-date').value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showToast(message, type = 'cyan') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `glass-panel px-4 py-3 rounded-2xl shadow-2xl text-slate-900 dark:text-white text-xs font-bold flex items-center gap-2 border border-${type}-500/30 animate-bounce pointer-events-auto`;
+            toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-${type}-500"></span> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
+        }
+
+        async function dl(name, data) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data]));
+            a.download = name;
+            a.click();
+        }
+
+        function exportContactsXlsx() {
+            const filtered = getFilteredContacts();
+            if (!filtered.length) { showToast('Aucune donnée à exporter', 'rose'); return; }
+            const ws = XLSX.utils.json_to_sheet(filtered.map(c => ({ Type: c.type, Nom: c.name, Email: c.email||'', Téléphone: c.phone||'', Date: c.date||'' })));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Annuaire');
+            dl(`nexus_contacts_${new Date().toISOString().split('T')[0]}.xlsx`, new Blob([XLSX.write(wb, { type: 'array', bookType: 'xlsx' })], { type: 'application/octet-stream' }));
+        }
+
+        function exportData() {
+            dl(`nexus_erp_backup_${new Date().toISOString().split('T')[0]}.json`, new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' }));
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    appData = JSON.parse(evt.target.result);
+                    saveData();
+                    showToast("Base de données importée avec succès !");
+                } catch(err) {
+                    alert("Format JSON invalide.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /* INITIALIZATION BOOTSTRAP */
+        window.onload = function() {
+            const s = S();
+            document.getElementById('cur-select').innerHTML = Object.entries(CURS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+            if (document.getElementById('pay-date')) document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+
+            applyTheme();
+            applyBrand();
+            renderAll();
+            onRole();
+
+            try {
+                const sessionMe = sessionStorage.getItem('ERP_ME');
+                if (sessionMe) {
+                    ME = JSON.parse(sessionMe);
+                    enter();
+                }
+            } catch(_) {}
+        };
+    </script>
+</body>
+</html>
